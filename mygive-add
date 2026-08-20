@@ -37,8 +37,6 @@ elif [ ! -d ".mygive/$ass_name" ]; then
         echo "directory .mygive created"
     fi
 
-    
-
     # check if tests file exists
     if [ ! -f "$tests_file_path" ]; then
         # check if tests file exists
@@ -52,6 +50,4 @@ elif [ ! -d ".mygive/$ass_name" ]; then
     # copy tests dirs and files to .mygive/<assignment_name>
     cp "$tests_file_path" ".mygive/$ass_name"
     
-
-
 fi

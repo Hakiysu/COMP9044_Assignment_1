@@ -1,0 +1,32 @@
+#!/bin/dash
+#
+# lists all assignments, with a count of how many students have made submissions. No arguments.
+
+
+# global variables
+mygive_dir="/.mygive"
+
+echo "Listing assignments in $mygive_dir"
+
+if [ ! -d "$mygive_dir" ]; then
+    echo "mygive-summary: mygive directory .mygive not found" >&2
+    exit 1
+fi
+
+# check if there any dir inside
+if [ ! -d "$mygive_dir/*" ]; then
+    echo "mygive-summary: no assignments found" >&2
+    exit 0
+fi  
+
+# list all assignments
+for assignment in "$mygive_dir/assignments"/*; do
+    # check if it is a directory
+    if [ -d "$assignment" ]; then
+        # get the assignment name
+        echo "Assignment: $(basename "$assignment")"
+        # count the number of submissions
+        count=$(find "$assignment" -type f -name "*.submission" | wc -l)
+        echo "Submissions: $count"
+    fi
+done

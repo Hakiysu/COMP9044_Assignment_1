@@ -1,0 +1,54 @@
+#!/bin/dash
+#
+# Makes a submission for the assignment by a student
+# example: mygive-submit <assignment> <zid> <filename>
+
+
+# global variables
+ass_name="$1"
+zid="$2"
+file_name="$3"
+
+
+if [ ! -d "./.mygive" ]; then
+    echo "mygive-submit: mygive directory .mygive not found"    
+fi
+# check command if legal
+if [ $# -ne 3 ]; then
+    echo "usage: mygive-submit <assignment> <zid> <filename>"
+    exit 1
+fi
+
+# assignment name check, format: only contain letters ([a-zA-Z]), numbers ([0-9]), underscore ('_'), dash ('-'), dot ('.') and slash ('/').
+if [ -z "$(echo "$ass_name" | grep '^[a-zA-Z0-9_.-/]*$')" ] || [ -z "$ass_name" ]; then
+    # check if assignment name is valid
+    echo "mygive-submit: invalid assignment: $ass_name" >&2
+    exit 1
+fi
+
+# check if assignment dir exists
+if [ ! -d ".mygive/$ass_name" ]; then
+    # assignment does not exist, print error message to stderr
+    echo "mygive-submit: assignment $ass_name does not exist" >&2
+    exit 1
+fi 
+
+# check if zid is valid, format: z, then 7 digits
+if [ -z "$(echo "$zid" | grep '^z[0-9]\{7\}$')" ] || [ -z "$zid" ]; then
+    # check if zid is valid
+    echo "mygive-submit: invalid zid: $zid" >&2
+    exit 1
+fi
+
+# check if file exists
+if [ ! -f "$file_name" ]; then
+    # check if file exists
+    echo "mygive-submit: $file_name: No such file or directory" >&2
+    exit 1
+fi
+
+
+# all pass, submit the assignment
+
+# eg:Submission accepted - submission 1: multiply_wrong.sh 48 bytes @ Fri Nov 15 07:16:34 1985
+echo "Submission accepted - submission 1: $file_name $(stat -c%s "$file_name") bytes @ $(date)" >&2
