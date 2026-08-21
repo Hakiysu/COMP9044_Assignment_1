@@ -1,0 +1,299 @@
+#!/bin/dash
+#
+# mygive-mark <assignment>
+# mygive-mark runs the marking tests for an assignment on the last submission of each student.
+# Its first argument should be the name of the assignment.
+
+# Note, only tests with marks specified should be run.
+
+# global variables
+mygive_dir="./.mygive"
+assignment_dir="$mygive_dir/assignments"
+assignment_name="$1"
+
+
+# check if 1 parameters are provided
+if [ "$#" -ne 1 ]; then
+    echo "usage: mygive-mark <assignment>" >&2
+    exit 1
+fi
+
+# if assign name legally and not empty
+if [ -z "$assignment_name" ]; then
+    echo "usage: mygive-mark <assignment>" >&2
+    exit 1
+fi
+# check if the assignment directory exists
+if [ ! -d "$assignment_dir/$assignment_name" ]; then
+    echo "mygive-mark: assignment $assignment_name not found" >&2
+    exit 1
+fi
+
+# check if the assignment has tests file
+# if test tar files exist, unzip them
+if [ -d "$assignment_dir/$assignment_name" ]; then
+    for test_file in "$assignment_dir/$assignment_name"/*.tests; do
+        if [ -f "$test_file" ]; then
+            # create a directory for tests if it doesn't exist
+            if [ ! -d "$assignment_dir/$assignment_name/tests" ]; then
+                mkdir -p "$assignment_dir/$assignment_name/tests"
+            fi
+            # unzip the test tar file,mute
+            tar -m -xf "$test_file" -C "$assignment_dir/$assignment_name/tests"
+        else
+            echo "No test files found for assignment '$assignment_name'."
+            exit 1
+        fi
+    done
+else
+    echo "No tests available for assignment '$assignment_name'."
+    exit 1
+fi
+
+
+# ready to mark
+
+
+
+
+tests_dir="$assignment_dir/$assignment_name/tests"
+# check if the tests directory exists
+if [ ! -d "$tests_dir" ]; then
+    echo "No tests available for assignment '$assignment_name'."
+    exit 1
+fi 
+# get tests dir
+marked_tests=$(find "$tests_dir" -mindepth 1 -maxdepth 1 -type d | sort)
+
+
+# get student latest submission (not assignment!)
+# student submit dir: /mygive/submissions/assignName/zid/ver/files
+# teacher test dir: /mygive/assignments/assignName/tests
+submission_dir="$mygive_dir/submissions"
+
+# loop through each student's submission directory
+for assignments in "$submission_dir/$assignment_name"/*; do
+    #under assigns dir, all dir are zids
+
+
+    # check if it is a directory
+    if [ -d "$assignments" ]; then
+        # get the zid from the directory name
+        zid=$(basename "$assignments")
+        # get the latest version directory
+        latest_version_dir=$(ls -d "$assignments"/*/ | sort -V | tail -n 1)
+        # get the latest version number
+        version=$(basename "$latest_version_dir")
+        # get file name inside
+        for files in "$latest_version_dir"/*; do
+            # check if it is a file
+            if [ -f "$files" ]; then
+                filename=$(basename "$files")
+                break
+            fi
+        done
+
+     
+        # get files in the latest version directory
+        
+        #get time by read timestamp.txt
+        if [ -f "$latest_version_dir/timestamp.txt" ]; then
+            timestamp=$(cat "$latest_version_dir/timestamp.txt")
+        fi
+        echo "*** Student $zid - submission $version: $filename $(wc -c < "$latest_version_dir/$filename") bytes @ $timestamp"
+
+
+        #start marking
+        total_score=0
+        current_score=0
+        pass_count=0
+        fail_count=0
+
+        # loop through each test case directory
+        for test_case_dir in $marked_tests/*; do
+            if [ -d "$test_case_dir" ]; then
+                # check if the test case directory has a marks file
+                if [ ! -f "$test_case_dir/marks" ]; then
+                    continue
+                fi 
+
+                # get the marks for the test case
+                marks=0
+                if [ -f "$test_case_dir/marks" ]; then
+                    marks=$(cat "$test_case_dir/marks")
+                fi
+                # add the marks to the total score
+                total_score=$((total_score + marks))
+                # reset the current score for this test case
+
+                # args getter
+                args=""
+                if [ -f "$test_case_dir/arguments" ]; then
+                    args="$(cat "$test_case_dir/arguments")"
+                fi
+
+
+                # temp out and err
+                out_temp="$(mktemp)"
+                err_temp="$(mktemp)"
+
+             
+                # run the test case
+                if [ -f "$test_case_dir/stdin" ]; then
+                    "$latest_version_dir/$filename" $args < "$test_case_dir/stdin" > "$out_temp" 2> "$err_temp"
+                else
+                    "$latest_version_dir/$filename" $args > "$out_temp" 2> "$err_temp"
+                fi
+                actual_exit_status=$?
+                expected_exit_status=0
+                if [ -f "$test_case_dir/exit_status" ]; then
+                    expected_exit_status=$(cat "$test_case_dir/exit_status")
+                fi
+
+
+
+
+                # get expected output
+                expected_stdout=""
+                expected_stderr=""
+                if [ -f "$test_case_dir/stdout" ]; then
+                    # expected stdout exists, continue to compare
+                    expected_stdout=$(cat "$test_case_dir/stdout")
+                    # get expected stdout bytes
+                    expected_out_bytes=$(wc -c < "$test_case_dir/stdout")
+                    # compare actual stdout with expected stdout
+                    isDiff=1
+                    actual_stdout=$(cat "$out_temp")
+                    # options check, b c d w
+                    if [ -n "$options_file" ]; then
+                        options=$(cat "$options_file")
+                        if echo "$options" | grep -q "b"; then
+                            # ignore blank lines
+                            actual_stdout=$(echo "$actual_stdout" | sed '/^[[:space:]]*$/d')
+                            expected_stdout=$(echo "$expected_stdout" | sed '/^[[:space:]]*$/d')
+                        fi
+                        if echo "$options" | grep -q "c"; then
+                            # ignore case (big and small letters). Make them both lower case
+                            actual_stdout=$(echo "$actual_stdout" | tr '[:upper:]' '[:lower:]')
+                            expected_stdout=$(echo "$expected_stdout" | tr '[:upper:]' '[:lower:]')
+                        fi
+                        if echo "$options" | grep -q "d"; then
+                            # ignore [0-9] and \n
+                            actual_stdout=$(echo "$actual_stdout" | tr -d '0-9\n')
+                            expected_stdout=$(echo "$expected_stdout" | tr -d '0-9\n')
+                        fi
+                        if echo "$options" | grep -q "w"; then
+                            # ignore space ' ' and tab '\t'
+                            actual_stdout=$(echo "$actual_stdout" | tr -d ' \t')
+                            expected_stdout=$(echo "$expected_stdout" | tr -d ' \t')
+                        fi
+                    fi
+                    # if expected stdout not exist, print actual stdout
+                    if [ -s "$out_temp" ]; then
+                        # expected stdout exists, check if actual stdout is empty
+                        if [ "$actual_stdout" = "$expected_stdout" ]; then
+                            isDiff=0
+                        fi
+                    else
+                        # actual stdout not exist, expect stdout is exist
+                        echo "--- No stdout produced, these $expected_out_bytes bytes expected:"
+                        printf "%s\n\n" "$expected_stdout"
+                        continue
+                    fi
+                else
+                    # expected stdout not exist, no need to compare
+                    actual_out_bytes=$(wc -c < "$out_temp")
+                    echo "--- No stdout expected, these $actual_out_bytes bytes produced:"
+                    printf "%s\n\n" "$(cat "$out_temp")"
+                    continue
+                fi
+
+               
+
+                
+                # check if the actual exit status matches the expected exit status
+                if [ "$actual_exit_status" -eq "$expected_exit_status" ]; then
+                    isExitStatusDiff=0
+                else
+                    isExitStatusDiff=1
+                fi
+
+
+                # final output
+                if [ "$isDiff" -eq 0 ] && [ "$isErrDiff" -eq 0 ] && [ "$isExitStatusDiff" -eq 0 ]; then
+                    echo "* Test $(basename "$test_case_dir") passed ($marks marks)."
+                    current_score=$((current_score + marks))
+                    pass_count=$((pass_count + 1))
+                else
+                    echo "* Test $(basename "$test_case_dir") failed."
+                    fail_count=$((fail_count + 1))
+                    # output show
+                    if [ "$isDiff" -eq 1 ]; then
+                    
+                        if [ -f "$test_case_dir/stdout" ]; then
+                            expected_out_bytes=$(wc -c < "$test_case_dir/stdout")
+                        else
+                            expected_out_bytes=0
+                        fi
+                        if [ -f "$out_temp" ]; then
+                            actual_out_bytes=$(wc -c < "$out_temp")
+                        else
+                            actual_out_bytes=0
+                        fi
+
+                        # if stdout exists, show the diff
+                        if [ -f "$test_case_dir/stdout" ]&& [ -s "$out_temp" ]; then
+                            echo "--- Incorrect stdout of $actual_out_bytes bytes:"
+                            printf "%s\n\n" "$actual_stdout"
+                            echo "--- Correct stdout is these $expected_out_bytes bytes:"
+                            printf "%s\n\n" "$expected_stdout"
+                        elif [ -s "$out_temp" ]; then   # if no expected stdout, show the actual stdout
+                            echo "--- No stdout produced, these $actual_out_bytes bytes expected:"
+                            printf "%s\n\n" "$actual_stdout"
+                        elif [ -f "$test_case_dir/stdout" ]; then  # if no actual stdout, show the expected stdout
+                            echo "--- No stdout expected, these $expected_out_bytes bytes produced:"
+                            printf "%s\n\n" "$expected_stdout"
+                        fi
+
+                    fi
+                    # error show
+                    if [ "$isErrDiff" -eq 1 ]; then
+                        if [ -f "$test_case_dir/stderr" ]; then
+                            expected_err_bytes=$(wc -c < "$test_case_dir/stderr")
+                        else
+                            expected_err_bytes=0
+                        fi
+                        if [ -f "$err_temp" ]; then
+                            actual_err_bytes=$(wc -c < "$err_temp")
+                        else
+                            actual_err_bytes=0
+                        fi
+
+                        # if stderr exists, show the diff
+                        if [ -f "$test_case_dir/stderr" ]; then
+                            echo "-- Incorrect stderr of $actual_err_bytes bytes:"
+                            printf "%s\n\n" "$actual_stderr"
+                            echo "--- Correct stderr is these $expected_err_bytes bytes:"
+                            printf "%s\n\n" "$expected_stderr"
+                        else
+                            echo "--- No stderr produced, these $expected_err_bytes bytes expected:"
+                            printf "%s\n\n" "$expected_stderr"
+                        fi
+
+                    fi
+                fi
+                # clean up temp files
+                rm -f "$out_temp" "$err_temp"
+            fi
+
+
+        done
+        # output the total score for this student
+        echo "** $pass_count tests passed, $fail_count tests failed - mark: $current_score/$total_score"
+    fi
+
+done
+
+
+
+

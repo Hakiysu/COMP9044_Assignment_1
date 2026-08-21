@@ -1,32 +1,38 @@
 #!/bin/dash
 #
-# lists all assignments, with a count of how many students have made submissions. No arguments.
+# TEACHER: lists all assignments, with a count of how many students have made submissions. No arguments.
 
+
+# mygive dir like :
 
 # global variables
-mygive_dir="/.mygive"
-
-echo "Listing assignments in $mygive_dir"
+mygive_dir="./.mygive"
+assignment_dir="$mygive_dir/assignments"
+submissions_dir="$mygive_dir/submissions"
 
 if [ ! -d "$mygive_dir" ]; then
     echo "mygive-summary: mygive directory .mygive not found" >&2
     exit 1
 fi
 
-# check if there any dir inside
-if [ ! -d "$mygive_dir/*" ]; then
-    echo "mygive-summary: no assignments found" >&2
+if [ ! -d "$assignment_dir" ]; then
     exit 0
-fi  
+fi
 
-# list all assignments
-for assignment in "$mygive_dir/assignments"/*; do
-    # check if it is a directory
-    if [ -d "$assignment" ]; then
-        # get the assignment name
-        echo "Assignment: $(basename "$assignment")"
-        # count the number of submissions
-        count=$(find "$assignment" -type f -name "*.submission" | wc -l)
-        echo "Submissions: $count"
+# if no assignments, exit
+if [ -z "$(find "$assignment_dir" -mindepth 1 -maxdepth 1 -type d)" ]; then
+    echo "no assignments"
+    exit 0
+fi
+
+for assignment_path in "$assignment_dir"/*; do
+    [ -d "$assignment_path" ] || continue
+    assignment_name=$(basename "$assignment_path")
+
+    student_count=0
+    if [ -d "$submissions_dir/$assignment_name" ]; then
+        student_count=$(find "$submissions_dir/$assignment_name" -mindepth 1 -maxdepth 1 -type d | wc -l)
     fi
+
+    echo "assignment $assignment_name: submissions from $student_count students"
 done

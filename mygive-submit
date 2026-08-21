@@ -8,28 +8,30 @@
 ass_name="$1"
 zid="$2"
 file_name="$3"
+mygive_dir="./.mygive"
+assignment_dir="$mygive_dir/assignments"
 
 
-if [ ! -d "./.mygive" ]; then
+if [ ! -d $mygive_dir ]; then
     echo "mygive-submit: mygive directory .mygive not found"    
 fi
 # check command if legal
 if [ $# -ne 3 ]; then
-    echo "usage: mygive-submit <assignment> <zid> <filename>"
+    echo "usage: mygive-submit <assignment> <zid> <filename>" >&2
     exit 1
 fi
 
 # assignment name check, format: only contain letters ([a-zA-Z]), numbers ([0-9]), underscore ('_'), dash ('-'), dot ('.') and slash ('/').
-if [ -z "$(echo "$ass_name" | grep '^[a-zA-Z0-9_.-/]*$')" ] || [ -z "$ass_name" ]; then
+if [ -z "$(echo "$ass_name" | grep '^[a-z][a-zA-Z0-9_]*$')" ] || [ -z "$ass_name" ]; then
     # check if assignment name is valid
     echo "mygive-submit: invalid assignment: $ass_name" >&2
     exit 1
 fi
 
 # check if assignment dir exists
-if [ ! -d ".mygive/$ass_name" ]; then
+if [ ! -d "$assignment_dir/$ass_name" ]; then
     # assignment does not exist, print error message to stderr
-    echo "mygive-submit: assignment $ass_name does not exist" >&2
+    echo "mygive-submit: assignment $ass_name not found" >&2
     exit 1
 fi 
 
@@ -40,6 +42,14 @@ if [ -z "$(echo "$zid" | grep '^z[0-9]\{7\}$')" ] || [ -z "$zid" ]; then
     exit 1
 fi
 
+# file name check, format: only contain letters ([a-zA-Z]), numbers ([0-9]), underscore ('_'), dash ('-'), dot ('.') and slash ('/').
+if [ -z "$(echo "$file_name" | grep '^[a-zA-Z0-9_.-/]*$')" ] || [ -z "$file_name" ]; then
+    # check if file name is valid
+    echo "mygive-submit: invalid file name: $file_name" >&2
+    echo "usage: mygive-submit <assignment> <zid> <filename>" >&2
+    exit 1
+fi 
+
 # check if file exists
 if [ ! -f "$file_name" ]; then
     # check if file exists
@@ -48,7 +58,56 @@ if [ ! -f "$file_name" ]; then
 fi
 
 
+
 # all pass, submit the assignment
 
-# eg:Submission accepted - submission 1: multiply_wrong.sh 48 bytes @ Fri Nov 15 07:16:34 1985
-echo "Submission accepted - submission 1: $file_name $(stat -c%s "$file_name") bytes @ $(date)" >&2
+# create the submission directory if it does not exist
+if [ ! -d "$mygive_dir/submissions/$ass_name" ]; then
+    mkdir -p "$mygive_dir/submissions/$ass_name"
+fi
+
+# create the submission directory for the zid
+submission_dir="$mygive_dir/submissions/$ass_name/$zid"
+if [ ! -d "$submission_dir" ]; then
+    mkdir -p "$submission_dir"
+fi  
+
+# search previous submissions for the same assignment 
+# if exists, ++ the submission number; if not, set it to 1
+sub_count=1
+for dir in "$submission_dir"/*; do
+    # check if it is a directory and the name is a number
+    base=$(basename "$dir")
+    if [ -d "$dir" ]; then
+        if [ "$base" -ge "$sub_count" ]; then # if the base is a number and greater than or equal to sub_count
+            sub_count=$((base + 1))
+        fi
+    fi
+done
+submission_path="$submission_dir/$sub_count"
+
+mkdir -p "$submission_path"
+
+
+# all pass, copy the file to the submission directory
+
+# copy the file to the submission directory
+cp "$file_name" "$submission_path/"
+# add submission timestamp to the file
+echo "$(date +'%a %b %e %H:%M:%S %Y')" >> "$submission_path/timestamp.txt"
+
+
+# check if the copy was successful
+if [ $? -ne 0 ]; then
+    echo "mygive-submit: failed to copy $file_name to $submission_path" >&2
+    exit 1
+fi  
+
+# print success message,like:Submission accepted - submission 1: multiply_wrong.sh 48 bytes @ Fri Nov 15 07:16:34 1985
+# rebuiild date format, like :Fri Nov 15 07:16:34 1985
+date="$(date +'%a %b %e %H:%M:%S %Y')"
+echo "Submission accepted - submission $sub_count: $file_name $(stat -c %s "$submission_path/$file_name") bytes @ $date"
+
+# exit with success
+exit 0
+# end of mygive-submit

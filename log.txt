@@ -1,0 +1,559 @@
+bash -n mygive-* *.sh # mygive-add
+check_hashbang.sh mygive-* # mygive-add
+check_features_used.sh mygive-* # mygive-add
+shellcheck -x -a -P='.' --shell=dash  -e2010,2011,2012,2038 mygive-*; true # mygive-add
+
+In mygive-add line 24:
+elif [ -z "$(echo "$assignment_name" | grep '^[a-z][a-zA-Z0-9_]*$')" ] || [ -z "$assignment_name" ]; then
+       ^-- SC2143 (style): Use ! grep -q instead of comparing output with [ -z .. ].
+
+
+In mygive-mark line 99:
+                    "$exeFILE" $args < "$test_case_dir/stdin" >"$out_temp" 2>"$err_temp"
+                               ^---^ SC2086 (info): Double quote to prevent globbing and word splitting.
+
+Did you mean: 
+                    "$exeFILE" "$args" < "$test_case_dir/stdin" >"$out_temp" 2>"$err_temp"
+
+
+In mygive-mark line 101:
+                    "$exeFILE" $args >"$out_temp" 2>"$err_temp"
+                               ^---^ SC2086 (info): Double quote to prevent globbing and word splitting.
+
+Did you mean: 
+                    "$exeFILE" "$args" >"$out_temp" 2>"$err_temp"
+
+
+In mygive-mark line 124:
+                        actual_stdout=$(cat "$out_temp" | sed '/^[[:space:]]*$/d')
+                                            ^---------^ SC2002 (style): Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+
+
+In mygive-mark line 125:
+                        expected_stdout=$(cat "$expected_stdout" | sed '/^[[:space:]]*$/d')
+                                              ^----------------^ SC2002 (style): Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+
+
+In mygive-mark line 126:
+                        actual_stderr=$(cat "$actual_stderr" | sed '/^[[:space:]]*$/d')
+                                            ^--------------^ SC2002 (style): Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+
+
+In mygive-mark line 127:
+                        expected_stderr=$(cat "$expected_stderr" | sed '/^[[:space:]]*$/d')
+                                              ^----------------^ SC2002 (style): Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+
+
+In mygive-mark line 130:
+                        actual_stdout=$(cat "$actual_stdout" | tr '[:upper:]' '[:lower:]')
+                                            ^--------------^ SC2002 (style): Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+
+
+In mygive-mark line 131:
+                        expected_stdout=$(cat "$expected_stdout" | tr '[:upper:]' '[:lower:]')
+                                              ^----------------^ SC2002 (style): Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+
+
+In mygive-mark line 132:
+                        actual_stderr=$(cat "$actual_stderr" | tr '[:upper:]' '[:lower:]')
+                                            ^--------------^ SC2002 (style): Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+
+
+In mygive-mark line 133:
+                        expected_stderr=$(cat "$expected_stderr" | tr '[:upper:]' '[:lower:]')
+                                              ^----------------^ SC2002 (style): Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+
+
+In mygive-mark line 137:
+                        actual_stdout=$(cat "$actual_stdout" | tr -d '0-9\n')
+                                            ^--------------^ SC2002 (style): Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+
+
+In mygive-mark line 138:
+                        expected_stdout=$(cat "$expected_stdout" | tr -d '0-9\n')
+                                              ^----------------^ SC2002 (style): Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+
+
+In mygive-mark line 139:
+                        actual_stderr=$(cat "$actual_stderr" | tr -d '0-9\n')
+                                            ^--------------^ SC2002 (style): Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+
+
+In mygive-mark line 140:
+                        expected_stderr=$(cat "$expected_stderr" | tr -d '0-9\n')
+                                              ^----------------^ SC2002 (style): Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+
+
+In mygive-mark line 143:
+                        actual_stdout=$(cat "$actual_stdout" | tr -d ' \t')
+                                            ^--------------^ SC2002 (style): Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+
+
+In mygive-mark line 144:
+                        expected_stdout=$(cat "$expected_stdout" | tr -d ' \t')
+                                              ^----------------^ SC2002 (style): Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+
+
+In mygive-mark line 145:
+                        actual_stderr=$(cat "$actual_stderr" | tr -d ' \t')
+                                            ^--------------^ SC2002 (style): Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+
+
+In mygive-mark line 146:
+                        expected_stderr=$(cat "$expected_stderr" | tr -d ' \t')
+                                              ^----------------^ SC2002 (style): Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+
+
+In mygive-mark line 177:
+                        printf "$actual_stdout\n\n"
+                               ^------------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-mark line 179:
+                        printf "$expected_stdout\n\n"
+                               ^--------------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-mark line 186:
+                        printf "$actual_stderr\n\n"
+                               ^------------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-mark line 188:
+                        printf "$expected_stderr\n\n"
+                               ^--------------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-rm line 29:
+rm -rf "$assignments_dir/$assignment_name"
+       ^-- SC2115 (warning): Use "${var:?}" to ensure this never expands to / .
+
+
+In mygive-rm line 30:
+rm -rf "$submissions_dir/$assignment_name"  
+       ^-- SC2115 (warning): Use "${var:?}" to ensure this never expands to / .
+
+
+In mygive-status line 25:
+if [ -z "$(echo "$zid" | grep '^z[0-9]\{7\}$')" ] || [ -z "$zid" ]; then
+     ^-- SC2143 (style): Use ! grep -q instead of comparing output with [ -z .. ].
+
+
+In mygive-status line 35:
+for assign_dir in $mygive_dir/submissions/*; do
+                  ^---------^ SC2231 (info): Quote expansions in this for loop glob to prevent wordsplitting, e.g. "$dir"/*.txt .
+
+
+In mygive-submit line 25:
+if [ -z "$(echo "$ass_name" | grep '^[a-z][a-zA-Z0-9_]*$')" ] || [ -z "$ass_name" ]; then
+     ^-- SC2143 (style): Use ! grep -q instead of comparing output with [ -z .. ].
+
+
+In mygive-submit line 39:
+if [ -z "$(echo "$zid" | grep '^z[0-9]\{7\}$')" ] || [ -z "$zid" ]; then
+     ^-- SC2143 (style): Use ! grep -q instead of comparing output with [ -z .. ].
+
+
+In mygive-submit line 46:
+if [ -z "$(echo "$file_name" | grep '^[a-zA-Z0-9_.-/]*$')" ] || [ -z "$file_name" ]; then
+     ^-- SC2143 (style): Use ! grep -q instead of comparing output with [ -z .. ].
+
+
+In mygive-submit line 97:
+echo "$(date +'%a %b %e %H:%M:%S %Y')" >> "$submission_path/timestamp.txt"
+     ^-- SC2005 (style): Useless echo? Instead of 'echo $(cmd)', just use 'cmd'.
+
+
+In mygive-submit line 101:
+if [ $? -ne 0 ]; then
+     ^-- SC2320 (warning): This $? refers to echo/printf, not a previous command. Assign to variable to avoid it being overwritten.
+     ^-- SC2181 (style): Check exit code directly with e.g. 'if ! mycmd;', not indirectly with $?.
+
+
+In mygive-test line 118:
+                ./"$filename" $args < "$stdin_file" > "$out_temp" 2> "$err_temp"
+                              ^---^ SC2086 (info): Double quote to prevent globbing and word splitting.
+
+Did you mean: 
+                ./"$filename" "$args" < "$stdin_file" > "$out_temp" 2> "$err_temp"
+
+
+In mygive-test line 121:
+                ./"$filename" $args > "$out_temp" 2> "$err_temp"
+                              ^---^ SC2086 (info): Double quote to prevent globbing and word splitting.
+
+Did you mean: 
+                ./"$filename" "$args" > "$out_temp" 2> "$err_temp"
+
+
+In mygive-test line 152:
+                    actual_stdout=$(printf "$actual_stdout" | sed '/^[[:space:]]*$/d')
+                                           ^--------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-test line 153:
+                    expected_stdout=$(printf "$expected_stdout" | sed '/^[[:space:]]*$/d')
+                                             ^----------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-test line 157:
+                    actual_stdout=$(printf "$actual_stdout" | tr '[:upper:]' '[:lower:]')
+                                           ^--------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-test line 158:
+                    expected_stdout=$(printf "$expected_stdout" | tr '[:upper:]' '[:lower:]')
+                                             ^----------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-test line 162:
+                    actual_stdout=$(printf "$actual_stdout" | tr -d '0-9\n')
+                                           ^--------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-test line 163:
+                    expected_stdout=$(printf "$expected_stdout" | tr -d '0-9\n')
+                                             ^----------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-test line 167:
+                    actual_stdout=$(printf "$actual_stdout" | tr -d ' \t')
+                                           ^--------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-test line 168:
+                    expected_stdout=$(printf "$expected_stdout" | tr -d ' \t')
+                                             ^----------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-test line 188:
+                    actual_stderr=$(printf "$actual_stderr" | sed '/^[[:space:]]*$/d')
+                                           ^--------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-test line 189:
+                    expected_stderr=$(printf "$expected_stderr" | sed '/^[[:space:]]*$/d')
+                                             ^----------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-test line 193:
+                    actual_stderr=$(printf "$actual_stderr" | tr '[:upper:]' '[:lower:]')
+                                           ^--------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-test line 194:
+                    expected_stderr=$(printf "$expected_stderr" | tr '[:upper:]' '[:lower:]')
+                                             ^----------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-test line 198:
+                    actual_stderr=$(printf "$actual_stderr" | tr -d '0-9\n')
+                                           ^--------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-test line 199:
+                    expected_stderr=$(printf "$expected_stderr" | tr -d '0-9\n')
+                                             ^----------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-test line 203:
+                    actual_stderr=$(printf "$actual_stderr" | tr -d ' \t')
+                                           ^--------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+
+In mygive-test line 204:
+                    expected_stderr=$(printf "$expected_stderr" | tr -d ' \t')
+                                             ^----------------^ SC2059 (info): Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+
+For more information:
+  https://www.shellcheck.net/wiki/SC2115 -- Use "${var:?}" to ensure this nev...
+  https://www.shellcheck.net/wiki/SC2320 -- This $? refers to echo/printf, no...
+  https://www.shellcheck.net/wiki/SC2059 -- Don't use variables in the printf...
+Test 1_add (add: 1 assignment) - passed
+Test 2_add (add: existing assignment) - passed
+Test 3_add (add: incorrect number of arguments) - passed
+Test 4_add (add: stdout if tests file doesn't exist) - passed
+Test 5_add (add: stderr if tests file doesn't exist) - passed
+Test 6_add (add: invalid name) - passed
+Test 7_summary (summary: 1 assignment) - passed
+Test 8_submit (submit) - passed
+Test 9_submit (submit: error handling) - passed
+Test 10_status (status 1 assignment) - passed
+Test 11_fetch (fetch) - passed
+Test 12_fetch (fetch - no submission number) - passed
+Test 13_fetch (fetch - negative submission number) - passed
+Test 14_fetch (fetch error) - passed
+Test 15_test (test) - passed
+Test 16_test (test: argument error handling) - passed
+Test 17_mark (mark 1 assignment) - passed
+Test 18_summary (rm) - passed
+Test 19_summary (add,rm,add) - passed
+Test 20_mark (test newline handling) - failed (Incorrect output)
+Your program produced these 35 lines of output:
+directory .mygive created
+assignment hello created
+* Test four_newlines passed.
+* Test no_newline passed.
+* Test no_output passed.
+* Test one_newline passed.
+* Test three_newlines passed.
+* Test two_newlines passed.
+** 6 tests passed, 0 tests failed
+* Test four_newlines passed.
+* Test no_newline passed.
+* Test no_output failed.
+--- No stdout expected, these 34 bytes produced:
+Hello COMP2041 and Hello COMP9044
+
+* Test one_newline passed.
+* Test three_newlines failed.
+--- Incorrect stdout of 0 bytes:
+
+
+--- Correct stdout is these 36 bytes:
+Hello COMP2041 and Hello COMP9044
+
+* Test two_newlines passed.
+** 4 tests passed, 2 tests failed
+Submission accepted - submission 1: hello.sh 143 bytes @ Fri Sep 16 11:51:06 1994
+Submission accepted - submission 1: hello_wrong0.sh 82 bytes @ Fri Sep 16 11:51:15 1994
+*** Student z5000000 - submission 1: hello.sh 143 bytes @ Fri Sep 16 11:51:06 1994
+* Test five_newlines passed (500 marks).
+* Test ten_newlines passed (1500 marks).
+** 2 tests passed, 0 tests failed - mark: 2000/2000
+*** Student z6000000 - submission 1: hello_wrong0.sh 82 bytes @ Fri Sep 16 11:51:15 1994
+* Test five_newlines passed (500 marks).
+* Test ten_newlines passed (1500 marks).
+** 2 tests passed, 0 tests failed - mark: 2000/2000
+
+The correct 70 lines of output for this test were:
+directory .mygive created
+assignment hello created
+* Test four_newlines passed.
+* Test no_newline passed.
+* Test no_output passed.
+* Test one_newline passed.
+* Test three_newlines passed.
+* Test two_newlines passed.
+** 6 tests passed, 0 tests failed
+* Test four_newlines failed.
+--- Incorrect stdout of 34 bytes:
+Hello COMP2041 and Hello COMP9044
+
+--- Correct stdout is these 37 bytes:
+Hello COMP2041 and Hello COMP9044
+
+
+
+
+* Test no_newline failed.
+Extra newline at end of stdout
+* Test no_output failed.
+--- No stdout expected, these 34 bytes produced:
+Hello COMP2041 and Hello COMP9044
+
+* Test one_newline passed.
+* Test three_newlines failed.
+--- No stdout produced, these 36 bytes expected:
+Hello COMP2041 and Hello COMP9044
+
+
+
+* Test two_newlines failed.
+Missing newline at end of stdout
+** 1 tests passed, 5 tests failed
+Submission accepted - submission 1: hello.sh 143 bytes @ Fri Sep 16 11:51:06 1994
+Submission accepted - submission 1: hello_wrong0.sh 82 bytes @ Fri Sep 16 11:51:15 1994
+*** Student z5000000 - submission 1: hello.sh 143 bytes @ Fri Sep 16 11:51:06 1994
+* Test five_newlines passed (500 marks).
+* Test ten_newlines passed (1500 marks).
+** 2 tests passed, 0 tests failed - mark: 2000/2000
+*** Student z6000000 - submission 1: hello_wrong0.sh 82 bytes @ Fri Sep 16 11:51:15 1994
+* Test five_newlines failed.
+--- Incorrect stdout of 34 bytes:
+Hello COMP2041 and Hello COMP9044
+
+--- Correct stdout is these 38 bytes:
+Hello COMP2041 and Hello COMP9044
+
+
+
+
+
+* Test ten_newlines failed.
+--- Incorrect stdout of 34 bytes:
+Hello COMP2041 and Hello COMP9044
+
+--- Correct stdout is these 43 bytes:
+Hello COMP2041 and Hello COMP9044
+
+
+
+
+
+
+
+
+
+
+** 0 tests passed, 2 tests failed - mark: 0/2000
+
+The difference between your output(-) and the correct output(+) is:
+...
+  ** 6 tests passed, 0 tests failed
+- * Test four_newlines passed.
+?                      ^ ^^
+
++ * Test four_newlines failed.
+?                      ^ ^^
+
++ --- Incorrect stdout of 34 bytes:
++ Hello COMP2041 and Hello COMP9044
++ 
++ --- Correct stdout is these 37 bytes:
++ Hello COMP2041 and Hello COMP9044
++ 
++ 
++ 
++ 
+- * Test no_newline passed.
+?                   ^ ^^
+
++ * Test no_newline failed.
+?                   ^ ^^
+
++ Extra newline at end of stdout
+  * Test no_output failed.
+  * Test three_newlines failed.
+- --- Incorrect stdout of 0 bytes:
++ --- No stdout produced, these 36 bytes expected:
++ Hello COMP2041 and Hello COMP9044
+  
+  
+- --- Correct stdout is these 36 bytes:
+- Hello COMP2041 and Hello COMP9044
+  
+- * Test two_newlines passed.
+?                     ^ ^^
+
++ * Test two_newlines failed.
+?                     ^ ^^
+
++ Missing newline at end of stdout
+- ** 4 tests passed, 2 tests failed
+?    ^               ^
+
++ ** 1 tests passed, 5 tests failed
+?    ^               ^
+
+  *** Student z6000000 - submission 1: hello_wrong0.sh 82 bytes @ Fri Sep 16 11:51:15 1994
+- * Test five_newlines passed (500 marks).
+- * Test ten_newlines passed (1500 marks).
++ * Test five_newlines failed.
++ --- Incorrect stdout of 34 bytes:
++ Hello COMP2041 and Hello COMP9044
++ 
++ --- Correct stdout is these 38 bytes:
++ Hello COMP2041 and Hello COMP9044
++ 
++ 
++ 
++ 
++ 
++ * Test ten_newlines failed.
++ --- Incorrect stdout of 34 bytes:
++ Hello COMP2041 and Hello COMP9044
++ 
++ --- Correct stdout is these 43 bytes:
++ Hello COMP2041 and Hello COMP9044
++ 
++ 
++ 
++ 
++ 
++ 
++ 
++ 
++ 
++ 
+- ** 2 tests passed, 0 tests failed - mark: 2000/2000
+?    ^               ^                      ---
+
++ ** 0 tests passed, 2 tests failed - mark: 0/2000
+?    ^               ^
+
+You can reproduce this test by executing these commands:
+  rm -rf .mygive
+  mygive-add hello hello.tests
+mygive-test hello hello.sh
+mygive-test hello hello_wrong0.sh
+FAKETIME="1994-09-16 11:51:06" mygive-submit hello z5000000 hello.sh
+FAKETIME="1994-09-16 11:51:15" mygive-submit hello z6000000 hello_wrong0.sh
+FAKETIME="1994-09-16 11:53:11" mygive-mark hello
+Test 21_mark (test option handling) - failed (errors)
+Your program produced these errors:
+cat: 'The'$'\n\n''answer is  42': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: 'The'$'\n''answer is  42': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: 'The'$'\n\n''answer is  42': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: 'The'$'\n\n''answer is  42': No such file or directory
+cat: 'The'$'\n\n''answer is  42': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: 'The'$'\n\n''answer is  42': No such file or directory
+cat: 'The'$'\n\n''answer is  42': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: 'The'$'\n\n''answer is  42': No such file or directory
+cat: 'The'$'\n\n''answer is  42': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: 'The'$'\n\n''answer is  42': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: 'THE'$'\n''answer  is 42': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: 'The'$'\n\n''answer is  42': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: 'the'$'\n\n''ANSWER is  42': No such file or directory
+cat: 'The'$'\n\n''answer is  42': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: 'There is extra'$'\n''text here'$'\n''but answer is still 42': No such file or directory
+cat: 'The'$'\n\n''answer is  42': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+cat: ' The '$'\n''  '$'\n''answer    is 42 ': No such file or directory
+cat: 'The'$'\n\n''answer is  42': No such file or directory
+cat: '': No such file or directory
+cat: '': No such file or directory
+You can reproduce this test by executing these commands:
+  rm -rf .mygive
+  mygive-add answer answer.tests
+mygive-test answer answer.sh
+mygive-test answer answer_wrong.sh
+FAKETIME="2050-06-06 13:36:48" mygive-submit answer z1234567 answer.sh
+FAKETIME="2050-06-06 13:38:24" mygive-submit answer z7654321 answer_wrong.sh
+FAKETIME="2050-06-06 13:38:30" mygive-mark answer
+Test 22_mark (test stdin & argument handling handling) - passed
+Test 23_test (test incorrect stderr & incorrect exit) - passed
+Test 24_test (test incorrect stderr with no new line + incorrect exit) - passed
+Test 25_mark (test incorrect stderr & incorrect exit) - passed
+23 tests passed 2 tests failed

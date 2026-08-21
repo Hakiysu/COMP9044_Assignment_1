@@ -1,0 +1,223 @@
+#!/bin/dash
+#
+# mygive-mark <assignment>
+# mygive-mark runs the marking tests for an assignment on the last submission of each student.
+# Its first argument should be the name of the assignment.
+
+# global variables
+mygive_dir="./.mygive"
+assignment_dir="$mygive_dir/assignments"
+assignment_name="$1"
+
+# check parameter
+if [ "$#" -ne 1 ] || [ -z "$assignment_name" ]; then
+    echo "usage: mygive-mark <assignment>" >&2
+    exit 1
+fi
+
+# check if assignment exists
+if [ ! -d "$assignment_dir/$assignment_name" ]; then
+    echo "mygive-mark: assignment $assignment_name not found" >&2
+    exit 1
+fi
+
+# extract .tests tar files
+for test_file in "$assignment_dir/$assignment_name"/*.tests; do
+    if [ -f "$test_file" ]; then
+        if [ ! -d "$assignment_dir/$assignment_name/tests" ]; then
+            mkdir -p "$assignment_dir/$assignment_name/tests"
+        fi
+        tar -m -xf "$test_file" -C "$assignment_dir/$assignment_name/tests"
+    else
+        echo "No test files found for assignment '$assignment_name'."
+        exit 1
+    fi
+done
+
+tests_dir="$assignment_dir/$assignment_name/tests"
+if [ ! -d "$tests_dir" ]; then
+    echo "No tests available for assignment '$assignment_name'."
+    exit 1
+fi 
+
+marked_tests=$(find "$tests_dir" -mindepth 1 -maxdepth 1 -type d | sort)
+# only keep directories that contain a marks file
+marked_tests=$(echo "$marked_tests" | while read -r dir; do
+    if [ -f "$dir/marks" ]; then
+        echo "$dir"
+    fi
+done)
+
+submission_dir="$mygive_dir/submissions"
+
+
+# loop through each student's submission
+for student_dir in "$submission_dir/$assignment_name"/*; do
+    if [ -d "$student_dir" ]; then
+        zid=$(basename "$student_dir")
+        latest_version_dir=$(ls -d "$student_dir"/*/ | sort -V | tail -n 1)
+        version=$(basename "$latest_version_dir")
+
+        # get file name (assumes only one main script)
+        for file_path in "$latest_version_dir"/*; do
+            if [ -f "$file_path" ]; then
+                filename=$(basename "$file_path")
+                break
+            fi
+        done
+
+        # get timestamp
+        if [ -f "$latest_version_dir/timestamp.txt" ]; then
+            timestamp=$(cat "$latest_version_dir/timestamp.txt")
+        else
+            timestamp="unknown time"
+        fi
+
+        echo "*** Student $zid - submission $version: $filename $(wc -c < "$latest_version_dir/$filename") bytes @ $timestamp"
+
+        total_score=0
+        current_score=0
+        pass_count=0
+        fail_count=0
+
+        for test_case_dir in $marked_tests; do
+            if [ -d "$test_case_dir" ] && [ -f "$test_case_dir/marks" ]; then
+
+            
+
+
+                marks=$(cat "$test_case_dir/marks")
+                total_score=$((total_score + marks))
+                args=""
+                [ -f "$test_case_dir/arguments" ] && args="$(cat "$test_case_dir/arguments")"
+                out_temp="$(mktemp)"
+                err_temp="$(mktemp)"
+
+                exeFILE="$latest_version_dir/$filename"
+
+                if [ -f "$test_case_dir/stdin" ]; then
+                    "$exeFILE" $args < "$test_case_dir/stdin" >"$out_temp" 2>"$err_temp"
+                else
+                    "$exeFILE" $args >"$out_temp" 2>"$err_temp"
+                fi
+
+                actual_exit_status=$?
+                expected_exit_status=0
+                [ -f "$test_case_dir/exit_status" ] && expected_exit_status=$(cat "$test_case_dir/exit_status")
+
+                # read stdout
+                actual_stdout=$(cat "$out_temp")
+                expected_stdout=""
+                [ -f "$test_case_dir/stdout" ] && expected_stdout=$(cat "$test_case_dir/stdout")
+
+                # read stderr
+                actual_stderr=$(cat "$err_temp")
+                expected_stderr=""
+                [ -f "$test_case_dir/stderr" ] && expected_stderr=$(cat "$test_case_dir/stderr")
+
+
+
+                # apply options
+                if [ -f "$test_case_dir/options" ]; then
+                    options=$(cat "$test_case_dir/options")
+                    if echo "$options" | grep -q "b"; then
+                        actual_stdout=$(cat "$out_temp" | sed '/^[[:space:]]*$/d')
+                        expected_stdout=$(cat "$expected_stdout" | sed '/^[[:space:]]*$/d')
+                        actual_stderr=$(cat "$actual_stderr" | sed '/^[[:space:]]*$/d')
+                        expected_stderr=$(cat "$expected_stderr" | sed '/^[[:space:]]*$/d')
+                    fi
+                    if echo "$options" | grep -q "c"; then
+                        actual_stdout=$(cat "$actual_stdout" | tr '[:upper:]' '[:lower:]')
+                        expected_stdout=$(cat "$expected_stdout" | tr '[:upper:]' '[:lower:]')
+                        actual_stderr=$(cat "$actual_stderr" | tr '[:upper:]' '[:lower:]')
+                        expected_stderr=$(cat "$expected_stderr" | tr '[:upper:]' '[:lower:]')
+                    fi
+                    
+                    if echo "$options" | grep -q "d"; then
+                        actual_stdout=$(cat "$actual_stdout" | tr -d '0-9\n')
+                        expected_stdout=$(cat "$expected_stdout" | tr -d '0-9\n')
+                        actual_stderr=$(cat "$actual_stderr" | tr -d '0-9\n')
+                        expected_stderr=$(cat "$expected_stderr" | tr -d '0-9\n')
+                    fi
+                    if echo "$options" | grep -q "w"; then
+                        actual_stdout=$(cat "$actual_stdout" | tr -d ' \t')
+                        expected_stdout=$(cat "$expected_stdout" | tr -d ' \t')
+                        actual_stderr=$(cat "$actual_stderr" | tr -d ' \t')
+                        expected_stderr=$(cat "$expected_stderr" | tr -d ' \t')
+                    fi
+                fi
+
+                
+                # check by use diff command
+
+                #temp
+                tmp_actual_stdout=$(mktemp)
+                tmp_expected_stdout=$(mktemp)
+                tmp_actual_stderr=$(mktemp)
+                tmp_expected_stderr=$(mktemp)
+                # write to temp files
+                printf "%s" "$actual_stdout" > "$tmp_actual_stdout"
+                printf "%s" "$expected_stdout" > "$tmp_expected_stdout"
+                printf "%s" "$actual_stderr" > "$tmp_actual_stderr"
+                printf "%s" "$expected_stderr" > "$tmp_expected_stderr"
+
+
+                if diff -q "$tmp_actual_stdout" "$tmp_expected_stdout" >/dev/null && \
+                   diff -q "$tmp_actual_stderr" "$tmp_expected_stderr" >/dev/null && \
+                   [ "$actual_exit_status" -eq "$expected_exit_status" ]; then
+                    echo "* Test $(basename "$test_case_dir") passed ($marks marks)."
+                    current_score=$((current_score + marks))
+                    pass_count=$((pass_count + 1))
+                else
+                    echo "* Test $(basename "$test_case_dir") failed."
+                    if [ "$actual_stdout" != "$expected_stdout" ]; then
+                        actual_stdout_bytes=$(wc -c < "$out_temp")
+                        expected_stdout_bytes=$(wc -c < "$test_case_dir/stdout")
+                        echo "--- Incorrect stdout of $actual_stdout_bytes bytes:"
+                        printf "$actual_stdout\n\n"
+                        echo "--- Correct stdout is these $expected_stdout_bytes bytes:"
+                        printf "$expected_stdout\n\n"
+                        
+                    fi
+                    if [ "$actual_stderr" != "$expected_stderr" ]; then
+                        actual_stderr_bytes=$(wc -c < "$err_temp")
+                        expected_stderr_bytes=$(wc -c < "$test_case_dir/stderr")
+                        echo "--- Incorrect stderr of $actual_stderr_bytes bytes:"
+                        printf "$actual_stderr\n\n"
+                        echo "--- Correct stderr is these $expected_stderr_bytes bytes:"
+                        printf "$expected_stderr\n\n"
+                    fi
+                    # chech if missing newline at the end of the file
+                    if [ -f "$out_temp" ] && [ -f "$err_temp" ]; then
+                        if [ -n "$(tail -c1 "$out_temp")" ]; then
+                            echo "Missing newline at end of stdout"
+                        fi
+                        if [ -n "$(tail -c1 "$err_temp")" ]; then
+                            echo "Missing newline at end of stderr"
+                        fi
+                    fi
+
+                    if [ "$actual_exit_status" -ne "$expected_exit_status" ]; then
+                        echo "Exit status of $actual_exit_status incorrect should be $expected_exit_status"
+                    fi
+
+                     
+                    fail_count=$((fail_count + 1))
+
+                fi
+
+
+
+
+                rm -f "$out_temp" "$err_temp"
+            fi
+        done
+        #** 2 tests passed, 2 tests failed - mark: 52/102
+
+        echo "** $pass_count tests passed, $fail_count tests failed - mark: $current_score/$total_score"
+    fi
+    
+done
+
+# clean up
+rm -rf "$tests_dir"

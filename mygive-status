@@ -1,0 +1,81 @@
+#!/bin/dash
+#
+# STUDENT: lists all submissions a student has made.
+# Its first argument should be the zid of the student.
+
+# Usage: mygive-status <zid>
+
+# dir structure: submission_dir="$mygive_dir/submissions/$ass_name/$zid/files"
+
+# .mygive/
+#   submissions/
+#     assignment1/
+#       z1234567/
+#         1/
+#           ...
+#         2/
+#           ...
+#       z2345678/
+
+# global variables
+mygive_dir="./.mygive"
+zid=$1
+
+# zid check, format: starts with 'z', followed by 7 digits.
+if [ -z "$(echo "$zid" | grep '^z[0-9]\{7\}$')" ] || [ -z "$zid" ]; then
+    # check if zid is valid
+    echo "mygive-status: invalid zid: $zid" >&2
+    echo "usage: mygive-status <zid>" >&2
+    exit 1
+fi
+
+sub_found=0
+# list all submissions for the zid
+# dir struc: "/.mygive/submissions/$assign_name/$zid/$version/files"
+for assign_dir in $mygive_dir/submissions/*; do
+    # search assignments in the submissions directory
+    # if not a directory, skip it
+    if [ ! -d "$assign_dir" ]; then
+        continue
+    fi
+
+    # get assignment name from the directory name
+    assign_name=$(basename "$assign_dir")
+    student_dir="$assign_dir/$zid"
+    # if student directory exists, list all submissions
+    if [ -d "$student_dir" ]; then
+        # if student directory exists, list all submissions version
+        ver_count=$(ls "$student_dir" | wc -l)
+        echo "* $ver_count submissions for $assign_name"
+        # list all files in the student's submission directory
+        # loop through all version numbers in order
+        for version_dir in "$student_dir"/*; do
+            version=$(basename "$version_dir")
+            # skip if not a directory or not a number
+            if [ ! -d "$version_dir" ]; then
+                continue
+            fi
+            
+            timestamp_file="$version_dir/timestamp.txt"
+            file_date=$(cat "$timestamp_file" 2>/dev/null)
+
+            # loop through each file (excluding timestamp.txt)
+            for file in "$version_dir"/*; do
+                if [ "$(basename "$file")" = "timestamp.txt" ]; then
+                    continue
+                fi
+                file_name=$(basename "$file")
+                file_size=$(stat -c %s "$file")
+                echo "submission $version: $file_name $file_size bytes @ $file_date"
+            done
+        done
+
+        sub_found=1
+    fi
+done   
+
+# if no submission found, print message
+if [ $sub_found -eq 0 ]; then
+    echo "no submissions for $zid"
+    exit 1
+fi

@@ -1,0 +1,81 @@
+#!/bin/dash
+#
+# mygive-fetch <assignment> <zid> [n]
+#
+# outputs the contents of a submission the student has made.
+
+# Its first argument should be the name of the assignment.
+
+# Its second argument should be the zid of the student.
+
+# Its optional third argument is the number of the submission to print. It should be an integer. If the third argument is omitted, the last submission should be printed.
+
+# Non-positive integers specify submissions relative to the last submission. Zero specifies the last submission, -1 the second-last submission, -2 the third-last submission, and so on.
+
+#global variables
+mygive_dir="./.mygive"
+submission_dir="$mygive_dir/submissions"
+assignment=$1
+zid=$2
+n=$3
+
+
+## checker
+
+# if 3 arguments are not given, print usage and exit
+if [ $# -lt 2 ]|| [ $# -gt 3 ]; then
+    echo "Usage: $0 <assignment> <zid> [n]"
+    exit 1
+fi
+
+
+# if n is not given, set it to 0/latest submission
+if [ -z "$n" ]; then
+    n=0
+fi
+
+# check if n is a valid integer
+if ! echo "$n" | grep -qE '^-?[0-9]+$'; then
+    echo "Invalid submission number: $n"
+    exit 1
+fi  
+
+# fetch the submissions
+submissions="$submission_dir/$assignment/$zid"
+# check if there are any submissions
+if [ ! -d "$submissions" ]; then
+    echo "No submissions found for zid: $zid"
+    exit 1
+fi
+
+# get version number
+version=$(ls "$submissions" | wc -l)
+
+# calculate the submission number (n---> version)
+if [ "$n" -gt 0 ]; then
+    if [ "$n" -gt "$version" ]; then
+        echo "mygive-fetch: submission $n not found for $assignment" >&2
+        exit 1
+    fi
+    submission_number=$n
+else
+    submission_number=$((version + n ))
+
+    if [ "$submission_number" -le 0 ] || [ "$submission_number" -gt "$version" ]; then
+        echo "mygive-fetch: submission $n not found for $assignment" >&2
+        exit 1
+    fi
+fi
+
+# get the submission file, print it
+submission_file="$submissions/$submission_number"
+# skip timestamp file
+for file in "$submission_file"/*; do
+    # skip if it is a timestamp file
+    if [ "$(basename "$file")" = "timestamp.txt" ]; then
+        continue
+    fi
+    if [ -f "$file" ]; then
+        cat "$file"
+    fi
+done

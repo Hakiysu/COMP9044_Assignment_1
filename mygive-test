@@ -1,0 +1,306 @@
+#!/bin/dash
+#
+# STUDENT
+# mygive-test <assignment> <filename>
+# mygive-test runs the tests supplied to students for an assignment on a program.
+# Its first argument should be the name of the assignment.
+
+# Its second argument should be the name of the file containing the program to be tested. The filename should only contain letters ([a-zA-Z]), numbers ([0-9]), underscore ('_'), dash ('-'), dot ('.') and slash ('/').
+
+# Note, only tests without marks specified should be run.
+
+
+# use testfile in "assignment" to test "filename" file
+# all test files like : xxx.tests
+
+# global variables
+
+mygive_dir="./.mygive"
+assignment_dir="$mygive_dir/assignments"
+
+assignment_name="$1"
+filename="$2"
+
+# check if 2 parameters are provided
+if [ "$#" -ne 2 ]; then
+    echo "usage: mygive-test <assignment> <filename>" >&2
+    exit 1
+fi
+
+# check if the assignment and filename are provided
+if [ -z "$assignment_name" ] || [ -z "$filename" ]; then
+    echo "usage: mygive-test <assignment> <filename>" >&2
+    exit 1
+fi
+
+# check if the assignment directory exists
+if [ ! -d "$assignment_dir/$assignment_name" ]; then
+    echo "mygive-test: assignment $assignment_name not found" >&2
+    exit 1
+fi  
+
+# if test tar files exist, unzip them
+if [ -d "$assignment_dir/$assignment_name" ]; then
+    for test_file in "$assignment_dir/$assignment_name"/*.tests; do
+        if [ -f "$test_file" ]; then
+            # create a directory for tests if it doesn't exist
+            if [ ! -d "$assignment_dir/$assignment_name/tests" ]; then
+                mkdir -p "$assignment_dir/$assignment_name/tests"
+            fi
+            # unzip the test tar file
+            tar -xf "$test_file" -C "$assignment_dir/$assignment_name/tests"
+        else
+            echo "No test files found for assignment '$assignment_name'."
+            exit 1
+        fi
+    done
+else
+    echo "No tests available for assignment '$assignment_name'."
+    exit 1
+fi
+
+tests_dir="$assignment_dir/$assignment_name/tests"
+# run the tests
+
+# check if the tests directory exists
+if [ ! -d "$tests_dir" ]; then
+    echo "No tests available for assignment '$assignment_name'."
+    exit 1
+fi 
+
+# counter
+pass_count=0
+fail_count=0
+for test_case_dir in "$tests_dir"/*; do
+    
+    if [ -d "$test_case_dir" ]; then
+
+        # run the test
+
+        #ONLY MAY HAVE: arguments, stdin, options, stdout, stderr, exit_status, marks.
+
+        # marks skipper
+        if [ -f "$test_case_dir/marks" ]; then
+            continue
+        fi        
+
+        ## getter
+
+        # args getter
+        args=""
+        if [ -f "$test_case_dir/arguments" ]; then
+            args="$(cat "$test_case_dir/arguments")"
+        fi
+
+        # stdin getter
+        stdin_file=""
+        if [ -f "$test_case_dir/stdin" ]; then
+            stdin_file="$test_case_dir/stdin"
+        fi
+
+
+        # options getter,
+        options_file=""
+        if [ -f "$test_case_dir/options" ]; then
+            options_file="$test_case_dir/options"
+        fi
+
+
+        # temp out and err
+        out_temp="$(mktemp)"
+        err_temp="$(mktemp)"
+        # run the program with the test case
+        if [ -f "$filename" ]; then
+            # before running.
+            # run the program with the arguments and expected stdin. save the out and err to temp files
+            if [ -n "$stdin_file" ]; then
+                # if stdin file exists, use it
+                ./"$filename" $args < "$stdin_file" > "$out_temp" 2> "$err_temp"
+            else
+                # if stdin file does not exist, run without it
+                ./"$filename" $args > "$out_temp" 2> "$err_temp"
+            fi
+        fi
+        actual_exit_status=$?
+        # expected stdout
+        expected_stdout=""
+        if [ -f "$test_case_dir/stdout" ]; then
+            expected_stdout=$(cat "$test_case_dir/stdout")
+        fi
+        # expected stderr
+        expected_stderr=""
+        if [ -f "$test_case_dir/stderr" ]; then
+            expected_stderr=$(cat "$test_case_dir/stderr")
+        fi
+        # expected exit status
+        expected_exit_status=0
+        if [ -f "$test_case_dir/exit_status" ]; then
+            expected_exit_status=$(cat "$test_case_dir/exit_status")
+        fi    
+
+        #DEBUG
+
+        # check if the actual output matches the expected output
+        if [ -f "$test_case_dir/stdout" ]; then
+            isDiff=1
+            actual_stdout=$(cat "$out_temp")
+            # options check, b c d w
+            if [ -n "$options_file" ]; then
+                options=$(cat "$options_file")
+                if echo "$options" | grep -q "b"; then
+                    # ignore blank lines
+                    actual_stdout=$(printf "$actual_stdout" | sed '/^[[:space:]]*$/d')
+                    expected_stdout=$(printf "$expected_stdout" | sed '/^[[:space:]]*$/d')
+                fi
+                if echo "$options" | grep -q "c"; then
+                    # ignore case (big and small letters). Make them both lower case
+                    actual_stdout=$(printf "$actual_stdout" | tr '[:upper:]' '[:lower:]')
+                    expected_stdout=$(printf "$expected_stdout" | tr '[:upper:]' '[:lower:]')
+                fi
+                if echo "$options" | grep -q "d"; then
+                    # ignore [0-9] and \n
+                    actual_stdout=$(printf "$actual_stdout" | tr -d '0-9\n')
+                    expected_stdout=$(printf "$expected_stdout" | tr -d '0-9\n')
+                fi
+                if echo "$options" | grep -q "w"; then
+                    # ignore space ' ' and tab '\t'
+                    actual_stdout=$(printf "$actual_stdout" | tr -d ' \t')
+                    expected_stdout=$(printf "$expected_stdout" | tr -d ' \t')
+                fi
+            fi
+            # compare them
+            if [ "$actual_stdout" = "$expected_stdout" ]; then
+                isDiff=0
+            fi
+        else 
+            isDiff=$(test -s "$out_temp" && echo 1 || echo 0)
+        fi
+
+        # check if the actual error matches the expected error
+        if [ -f "$test_case_dir/stderr" ]; then
+            isErrDiff=1
+            actual_stderr=$(cat "$err_temp")
+            # options check, b c d w
+            if [ -n "$options_file" ]; then
+                options=$(cat "$options_file")
+                if echo "$options" | grep -q "b"; then
+                    # ignore blank lines
+                    actual_stderr=$(printf "$actual_stderr" | sed '/^[[:space:]]*$/d')
+                    expected_stderr=$(printf "$expected_stderr" | sed '/^[[:space:]]*$/d')
+                fi
+                if echo "$options" | grep -q "c"; then
+                    # ignore case (big and small letters). Make them both lower case
+                    actual_stderr=$(printf "$actual_stderr" | tr '[:upper:]' '[:lower:]')
+                    expected_stderr=$(printf "$expected_stderr" | tr '[:upper:]' '[:lower:]')
+                fi
+                if echo "$options" | grep -q "d"; then
+                    # ignore [0-9] and \n
+                    actual_stderr=$(printf "$actual_stderr" | tr -d '0-9\n')
+                    expected_stderr=$(printf "$expected_stderr" | tr -d '0-9\n')
+                fi
+                if echo "$options" | grep -q "w"; then
+                    # ignore space ' ' and tab '\t'
+                    actual_stderr=$(printf "$actual_stderr" | tr -d ' \t')
+                    expected_stderr=$(printf "$expected_stderr" | tr -d ' \t')
+                fi
+            fi
+            if [ "$actual_stderr" = "$expected_stderr" ]; then
+                isErrDiff=0
+            fi
+        else
+            isErrDiff=$(test -s "$err_temp" && echo 1 || echo 0)
+        fi 
+
+        # check if the actual exit status matches the expected exit status
+        if [ "$actual_exit_status" -eq "$expected_exit_status" ]; then
+            isExitStatusDiff=0
+        else
+            isExitStatusDiff=1
+        fi
+
+
+        # bytes getters
+       
+        # final output
+        if [ "$isDiff" -eq 0 ] && [ "$isErrDiff" -eq 0 ] && [ "$isExitStatusDiff" -eq 0 ]; then
+            echo "* Test $(basename "$test_case_dir") passed."
+            pass_count=$((pass_count + 1))
+        else
+            echo "* Test $(basename "$test_case_dir") failed."
+            fail_count=$((fail_count + 1))
+            # output show
+            if [ "$isDiff" -eq 1 ]; then
+                if [ -f "$test_case_dir/stdout" ]; then
+                    expected_out_bytes=$(wc -c < "$test_case_dir/stdout")
+                else
+                    expected_out_bytes=0
+                fi
+
+
+                if [ -f "$out_temp" ]; then
+                    actual_out_bytes=$(wc -c < "$out_temp")
+                else
+                    actual_out_bytes=0
+                fi
+
+                # if stdout exists, show the diff
+                if [ -f "$test_case_dir/stdout" ]; then
+                    echo "--- Incorrect stdout of $actual_out_bytes bytes:"
+                    printf "%s\n\n" "$actual_stdout"
+                    echo "--- Correct stdout is these $expected_out_bytes bytes:"
+                    printf "%s\n\n" "$expected_stdout"
+                else
+                    echo "--- No stdout expected, these $actual_out_bytes bytes produced:"
+                    printf "%s\n\n" "$actual_stdout"
+                fi
+
+            fi
+            # error show
+            if [ "$isErrDiff" -eq 1 ]; then
+                if [ -f "$test_case_dir/stderr" ]; then
+                    expected_err_bytes=$(wc -c < "$test_case_dir/stderr")
+                else
+                    expected_err_bytes=0
+                fi
+                if [ -f "$err_temp" ]; then
+                    actual_err_bytes=$(wc -c < "$err_temp")
+                else
+                    actual_err_bytes=0
+                fi
+
+                # if stderr exists, show the diff
+                if [ -f "$test_case_dir/stderr" ]; then
+                    echo "--- Incorrect stderr of $actual_err_bytes bytes:"
+                    printf "%s\n\n" "$actual_stderr"
+                    echo "--- Correct stderr is these $expected_err_bytes bytes:"
+                    printf "%s\n\n" "$expected_stderr"
+                else
+                    echo "--- No stderr expected, these $actual_err_bytes bytes produced:"
+                    printf "%s\n\n" "$actual_stderr"
+                fi
+            fi
+            # chech if missing newline at the end of the file
+            if [ -f "$out_temp" ] && [ -f "$err_temp" ]; then
+                if [ -n "$(tail -c1 "$out_temp")" ]; then
+                    echo "Missing newline at end of stdout"
+                fi
+                if [ -n "$(tail -c1 "$err_temp")" ]; then
+                    echo "Missing newline at end of stderr"
+                fi
+            fi
+            # exit status show
+            if [ "$isExitStatusDiff" -eq 1 ]; then
+                echo "Exit status of $actual_exit_status incorrect should be $expected_exit_status"
+            fi
+
+        fi
+
+        rm "$out_temp" "$err_temp"
+    fi
+done
+
+# pass and fail count, like ** 3 tests passed, 0 tests failed
+echo "** $pass_count tests passed, $fail_count tests failed"
+
+# clean up
+rm -rf "$tests_dir"

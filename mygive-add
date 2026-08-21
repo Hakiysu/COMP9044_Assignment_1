@@ -1,12 +1,18 @@
 #!/bin/dash
 #
-# Creates a new MyGive assignment.
+# TEACHER: Creates a new MyGive assignment.
 # example: mygive-add <assignment> <tests>
+#eg: /.mygive/<assignment_name>/tests
+
 
 
 # global variables
-ass_name="$1"
+mygive_dir="./.mygive"
+assignment_dir="$mygive_dir/assignments"
+
+assignment_name="$1"
 tests_file_path="$2"
+
 
 
 # check command if legal
@@ -15,26 +21,33 @@ if [ $# -ne 2 ]; then
     exit 1
 
 # assignment name check, format:[az]*[a-zA-Z0-9_]
-elif [ -z "$(echo "$ass_name" | grep '^[a-z][a-zA-Z0-9_]*$')" ] || [ -z "$ass_name" ]; then
+elif [ -z "$(echo "$assignment_name" | grep '^[a-z][a-zA-Z0-9_]*$')" ] || [ -z "$assignment_name" ]; then
     # check if assignment name is valid
-    echo "mygive-add: invalid assignment: $ass_name">&2
+    echo "mygive-add: invalid assignment: $assignment_name">&2
     exit 1
 
 # check if assignment dir already exists
-elif [ -d ".mygive/$ass_name" ]; then
+elif [ -d "$assignment_dir/$assignment_name" ]; then
     # assignment already exists, print error message to stderr
-    echo "mygive-add: assignment $ass_name already exists">&2
+    echo "mygive-add: assignment $assignment_name already exists">&2
     exit 1
 
 
    
 # if <assignment_name> dir not exist in .mygive, create it
-elif [ ! -d ".mygive/$ass_name" ]; then
+elif [ ! -d "$assignment_dir/$assignment_name" ]; then
     # check if .mygive dir exists
     if [ ! -d ".mygive" ]; then
         # create .mygive dir
         mkdir ".mygive"
         echo "directory .mygive created"
+    fi
+
+
+    # check if assignments dir exist, if not, create it
+    if [ ! -d "$assignment_dir" ]; then
+        # create .mygive dir
+        mkdir "$assignment_dir"
     fi
 
     # check if tests file exists
@@ -45,9 +58,9 @@ elif [ ! -d ".mygive/$ass_name" ]; then
     fi
 
     # create <assignment_name> dir in .mygive
-    mkdir ".mygive/$ass_name"
-    echo "assignment $ass_name created"
+    mkdir "$assignment_dir/$assignment_name"
+    echo "assignment $assignment_name created"
     # copy tests dirs and files to .mygive/<assignment_name>
-    cp "$tests_file_path" ".mygive/$ass_name"
+    cp "$tests_file_path" "$assignment_dir/$assignment_name"
     
 fi
